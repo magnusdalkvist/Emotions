@@ -41,19 +41,20 @@ emotion_map = {
 df['label_name'] = df['label'].map(emotion_map)
 
 # Plotting the distribution of categories
-logger.info("Plotting data distribution...")
-background_color = '#5fa1bc'
-sns.set_theme(style="whitegrid", rc={"axes.facecolor": background_color, 'figure.facecolor': background_color})
-count = df['label_name'].value_counts()
-fig, axs = plt.subplots(1, 2, figsize=(12, 6), facecolor=background_color)
-palette = sns.color_palette("bright", len(count))
-sns.set_palette(palette)
-axs[0].pie(count, labels=count.index, autopct='%1.1f%%', startangle=140)
-axs[0].set_title('Distribution of Categories', fontsize=15, fontweight='bold')
-sns.barplot(x=count.index, y=count.values, ax=axs[1])
-axs[1].set_title('Count of Categories', fontsize=15, fontweight='bold')
-plt.tight_layout()
-plt.show()
+
+# logger.info("Plotting data distribution...")
+# background_color = '#5fa1bc'
+# sns.set_theme(style="whitegrid", rc={"axes.facecolor": background_color, 'figure.facecolor': background_color})
+# count = df['label_name'].value_counts()
+# fig, axs = plt.subplots(1, 2, figsize=(12, 6), facecolor=background_color)
+# palette = sns.color_palette("bright", len(count))
+# sns.set_palette(palette)
+# axs[0].pie(count, labels=count.index, autopct='%1.1f%%', startangle=140)
+# axs[0].set_title('Distribution of Categories', fontsize=15, fontweight='bold')
+# sns.barplot(x=count.index, y=count.values, ax=axs[1])
+# axs[1].set_title('Count of Categories', fontsize=15, fontweight='bold')
+# plt.tight_layout()
+# plt.show()
 
 # Converting labels back to numeric for training
 df['label'] = df['label_name'].map({v: k for k, v in emotion_map.items()})
@@ -101,9 +102,23 @@ def predict_emotion(message, model, vectorizer, emotion_map):
     return predicted_emotion
 
 
-new_message = "I feel good today, because i learned something new!"
+new_message = ""
+
+List_of_messages = ["What an absolute bunch of nonsense. Has Elon gone completely insane?", 
+"During World War 2 some 80% of the Romani people were killed in Europe. They didn't get their own state. They didn't get anything. Until this day, European countries are still discriminating against the Romani people with tailor-made legislation.",
+"Came across @exercism_io just poked around a bit, but it looks like an absolutely awesome project!",
+"The West is a lost cause — a massive breakup is needed to get it back on track."]
+
 
 # Predict the emotion of the new message
-predicted_emotion = predict_emotion(new_message, model, vectorizer, emotion_map)
+#predicted_emotion = predict_emotion(new_message, model, vectorizer, emotion_map)
 
-print(f"The predicted emotion for the message is: {predicted_emotion}")
+#print(f"The predicted emotion for the message is: {predicted_emotion}")
+
+counter = 0
+
+for message in List_of_messages:
+    print("Prediction message:\n" + message)
+    predicted_emotion = predict_emotion(message, model, vectorizer, emotion_map)
+    print(f"The predicted emotion for the message is: {predicted_emotion}\n\n")
+    counter += 1
