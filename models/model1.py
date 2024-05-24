@@ -9,6 +9,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 import logging
+import tkinter as tk
+from tkinter import messagebox
+from sklearn.utils.class_weight import compute_class_weight
 #-------------------------------------------
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,7 +43,6 @@ emotion_map = {
 }
 df['label_name'] = df['label'].map(emotion_map)
 
-# Plotting the distribution of categories
 
 # logger.info("Plotting data distribution...")
 # background_color = '#5fa1bc'
@@ -72,13 +74,18 @@ X_train_tfidf = vectorizer.fit_transform(X_train)
 X_test_tfidf = vectorizer.transform(X_test)
 logger.info("Text data vectorized successfully.")
 
-# Training the model
-logger.info("Training Logistic Regression model...")
-model = LogisticRegression(max_iter=1000, verbose=1)
+class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
+
+
+
+logger.info("Training Logistic Regression model with class weights...")
+model = LogisticRegression(max_iter=1000, verbose=1, class_weight=dict(zip(np.unique(y_train), class_weights)))
 model.fit(X_train_tfidf, y_train)
 logger.info("Model trained successfully.")
 
-# Predicting and evaluating the model
+
+
+
 logger.info("Evaluating the model...")
 y_pred = model.predict(X_test_tfidf)
 
@@ -102,23 +109,74 @@ def predict_emotion(message, model, vectorizer, emotion_map):
     return predicted_emotion
 
 
-new_message = ""
-
-List_of_messages = ["What an absolute bunch of nonsense. Has Elon gone completely insane?", 
-"During World War 2 some 80% of the Romani people were killed in Europe. They didn't get their own state. They didn't get anything. Until this day, European countries are still discriminating against the Romani people with tailor-made legislation.",
-"Came across @exercism_io just poked around a bit, but it looks like an absolutely awesome project!",
-"The West is a lost cause — a massive breakup is needed to get it back on track."]
 
 
-# Predict the emotion of the new message
-#predicted_emotion = predict_emotion(new_message, model, vectorizer, emotion_map)
+#GUI SETUP-----------------------------------------
 
-#print(f"The predicted emotion for the message is: {predicted_emotion}")
+flag = True
 
-counter = 0
+def submit_input(event=None):
+    global flag
+    prediction_text = prediction_entry.get()
+    if prediction_text.lower() == "exit":
+        flag = False
+        root.quit()
+        return
+    
+    predicted_emotion = predict_emotion(prediction_text, model, vectorizer, emotion_map)
+    output_text = f"Predicted Emotion: {predicted_emotion}\n"
 
-for message in List_of_messages:
-    print("Prediction message:\n" + message)
-    predicted_emotion = predict_emotion(message, model, vectorizer, emotion_map)
-    print(f"The predicted emotion for the message is: {predicted_emotion}\n\n")
-    counter += 1
+    
+    output_label.config(text=output_text)
+    
+    # Clear the entry field
+    prediction_entry.delete(0, tk.END)
+
+
+def reset_gui():
+    output_label.config(text="")
+    prediction_entry.delete(0, tk.END)
+    prediction_entry.focus()
+
+total_predictions = len(y_test)
+correct_predictions = (y_test == y_pred).sum()
+accuracy_percentage = (correct_predictions / total_predictions) * 100
+
+while flag:
+    root = tk.Tk()
+    root.title("Prediction GUI")
+
+    # Set font size for labels and buttons
+    label_font = ("Arial", 24)
+    button_font = ("Arial", 20)
+
+    tk.Label(root, text=f"Model prediction accuracy: {accuracy_percentage:.2f}%\n\nPlease enter the prediction message, or \"exit\" to exit the loop.",
+             font=label_font).pack(pady=5)
+    prediction_entry = tk.Entry(root, font=label_font)
+    prediction_entry.pack(pady=5)
+
+    submit_button = tk.Button(root, text="Submit", command=submit_input, font=button_font)
+    submit_button.pack(pady=10)
+
+    reset_button = tk.Button(root, text="Reset", command=reset_gui, font=button_font)
+    reset_button.pack(pady=10)
+
+    output_label = tk.Label(root, text="", fg="blue", font=label_font)
+    output_label.pack(pady=10)
+
+    # Bind the <Return> key to submit_input function
+    root.bind("<Return>", submit_input)
+
+    root.mainloop()
+
+    # Calculate accuracy for each prediction
+    if not flag:
+        break  # Exit the loop if the user exits
+
+    # Display accuracy for the last prediction
+    if y_test is not None:
+        last_prediction_text = prediction_text
+        last_predicted_emotion = predicted_emotion
+        last_actual_emotion = emotion_map[y_test[-1]]
+        last_prediction_accuracy = "Correct" if last_predicted_emotion == last_actual_emotion else "Incorrect"
+        logger.info(f"Input: {last_prediction_text}, Predicted Emotion: {last_predicted_emotion}, Actual Emotion: {last_actual_emotion}, Accuracy: {last_prediction_accuracy}")
